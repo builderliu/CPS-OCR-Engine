@@ -158,8 +158,8 @@ class PreprocessResizeKeepRatioFillBG(object):
         if height_large < height_small:
             raise ValueError("height_large <= height_small")
 
-        start_width = (width_large - width_small) / 2
-        start_height = (height_large - height_small) / 2
+        start_width = (width_large - width_small) // 2
+        start_height = (height_large - height_small) // 2
 
         img_large[start_height:start_height + height_small,
                   start_width:start_width + width_small] = img_small
