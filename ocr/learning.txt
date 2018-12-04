@@ -1,0 +1,11 @@
+#数据合成
+python gen_printed_char.py --out_dir ./dataset --font_dir ./chinese_fonts --width 30 --height 30 --margin 4 --rotate 30 --rotate_step 1
+#训练
+python Chinese_OCR.py --mode=train --max_steps=16002 --eval_steps=100 --save_steps=500
+#模型评估
+python Chinese_OCR.py --mode=validation
+#线上预测
+python Chinese_OCR.py --mode=inference
+
+
+1,将chinese_fonts下的字体文件生成对应的文字图片文件，用作test和train
