@@ -26,7 +26,7 @@ class dataAugmentation(object):
         self.dilate = dilate
         self.erode = erode
 
-    @classmethod 
+    @classmethod
     def add_noise(cls,img):
         for i in range(20): #添加点噪声
             temp_x = np.random.randint(0,img.shape[0])
@@ -36,14 +36,14 @@ class dataAugmentation(object):
 
     @classmethod
     def add_erode(cls,img):
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(3, 3))    
-        img = cv2.erode(img,kernel) 
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(3, 3))
+        img = cv2.erode(img,kernel)
         return img
 
     @classmethod
     def add_dilate(cls,img):
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(3, 3))    
-        img = cv2.dilate(img,kernel) 
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(3, 3))
+        img = cv2.dilate(img,kernel)
         return img
 
     def do(self,img_list=[]):
@@ -55,7 +55,7 @@ class dataAugmentation(object):
             if self.dilate and random.random()<0.5:
                 im = self.add_dilate(im)
             elif self.erode:
-                im = self.add_erode(im)    
+                im = self.add_erode(im)
             aug_list.append(im)
         return aug_list
 
@@ -122,7 +122,7 @@ class FindImageBBox(object):
                 break
         return (left, top, right, low)
 
-# 把字体图像放到背景图像中		
+# 把字体图像放到背景图像中
 class PreprocessResizeKeepRatioFillBG(object):
 
     def __init__(self, width, height,
@@ -158,8 +158,8 @@ class PreprocessResizeKeepRatioFillBG(object):
         if height_large < height_small:
             raise ValueError("height_large <= height_small")
 
-        start_width = (width_large - width_small) / 2
-        start_height = (height_large - height_small) / 2
+        start_width = (width_large - width_small) // 2
+        start_height = (height_large - height_small) // 2
 
         img_large[start_height:start_height + height_small,
                   start_width:start_width + width_small] = img_small
@@ -253,7 +253,7 @@ class FontCheck(object):
             return False
         return True
 
-# 生成字体图像
+# 生成字体图像(利用不同的字体生成训练数据)
 class Font2Image(object):
 
     def __init__(self,
@@ -274,7 +274,7 @@ class Font2Image(object):
         draw.text((0, 0), char, (255, 255, 255),
                   font=font)
         if rotate != 0:
-            img = img.rotate(rotate)
+            img = img.rotate(rotate) #旋转
         data = list(img.getdata())
         sum_val = 0
         for i_data in data:
@@ -300,7 +300,8 @@ class Font2Image(object):
 
 # 注意，chinese_labels里面的映射关系是：（ID：汉字）
 def get_label_dict():
-    f=open('./chinese_labels','r')
+    #f=open('./chinese_labels','rb')
+    f = open('./number_labels', 'rb')
     label_dict = pickle.load(f)
     f.close()
     return label_dict
@@ -338,8 +339,8 @@ def args_parse():
                         help='rotate step for the rotate angle')
     parser.add_argument('--need_aug', dest='need_aug',
                         default=False, required=False,
-                        help='need data augmentation', action='store_true')   
-    args = vars(parser.parse_args()) 
+                        help='need data augmentation', action='store_true')
+    args = vars(parser.parse_args())
     return args
 
 if __name__ == "__main__":
@@ -349,7 +350,7 @@ python gen_printed_char.py --out_dir ./dataset \
 			--font_dir ./chinese_fonts \
 			--width 30 --height 30 --margin 4 --rotate 30 --rotate_step 1
     '''
-    options = args_parse()
+    options = args_parse() #解析参数
 
     out_dir = os.path.expanduser(options['out_dir'])
     font_dir = os.path.expanduser(options['font_dir'])
@@ -375,10 +376,10 @@ python gen_printed_char.py --out_dir ./dataset \
     if os.path.isdir(test_images_dir):
         shutil.rmtree(test_images_dir)
     os.makedirs(test_images_dir)
-    
+
     #将汉字的label读入，得到（ID：汉字）的映射表label_dict
     label_dict = get_label_dict()
-    
+
     char_list=[]  # 汉字列表
     value_list=[] # label列表
     for (value,chars) in label_dict.items():
@@ -387,20 +388,20 @@ python gen_printed_char.py --out_dir ./dataset \
         value_list.append(value)
 
     # 合并成新的映射关系表：（汉字：ID）
-    lang_chars = dict(zip(char_list,value_list)) 
-    font_check = FontCheck(lang_chars) 
-    
+    lang_chars = dict(zip(char_list,value_list))
+    font_check = FontCheck(lang_chars)
+
     if rotate < 0:
         roate = - rotate
-    
+
     if rotate > 0 and rotate <= 45:
         all_rotate_angles = []
-        for i in range(0, rotate+1, rotate_step):  
+        for i in range(0, rotate+1, rotate_step):
             all_rotate_angles.append(i)
         for i in range(-rotate, 0, rotate_step):
             all_rotate_angles.append(i)
         #print(all_rotate_angles)
-    
+
     # 对于每类字体进行小批量测试
     verified_font_paths = []
     ## search for file fonts
@@ -415,12 +416,13 @@ python gen_printed_char.py --out_dir ./dataset \
         image_list = []
         print (char,value)
         #char_dir = os.path.join(images_dir, "%0.5d" % value)
-        for j, verified_font_path in enumerate(verified_font_paths):    # 内层循环是字体   
+        for j, verified_font_path in enumerate(verified_font_paths):    # 内层循环是字体
+            print(verified_font_path)   #输入对应的字体集合
             if rotate == 0:
                 image = font2image.do(verified_font_path, char)
                 image_list.append(image)
             else:
-                for k in all_rotate_angles:	
+                for k in all_rotate_angles:
                     image = font2image.do(verified_font_path, char, rotate=k)
                     image_list.append(image)
 
@@ -428,12 +430,12 @@ python gen_printed_char.py --out_dir ./dataset \
         if need_aug:
             data_aug = dataAugmentation()
             image_list = data_aug.do(image_list)
-            
+
         test_num = len(image_list) * test_ratio
         random.shuffle(image_list)  # 图像列表打乱
         count = 0
         for i in range(len(image_list)):
-            img = image_list[i]
+            img = image_list[i ]
             #print(img.shape)
             if count < test_num :
                 char_dir = os.path.join(test_images_dir, "%0.5d" % value)

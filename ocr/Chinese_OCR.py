@@ -4,6 +4,7 @@
 # top 1 accuracy 0.99826 top 5 accuracy 0.99989
 
 import os
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 import random
 import tensorflow.contrib.slim as slim
@@ -16,8 +17,10 @@ from PIL import Image
 import cv2
 from tensorflow.python.ops import control_flow_ops
 import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
+
+# import reload(sys)
+# import reload(sys)
+# sys.setdefaultencoding('utf-8')
 
 logger = logging.getLogger('Training a chinese write char recognition')
 logger.setLevel(logging.INFO)
@@ -62,7 +65,7 @@ class DataIterator:
         for root, sub_folder, file_list in os.walk(data_dir):
             if root < truncate_path:
                 self.image_names += [os.path.join(root, file_path) for file_path in file_list]
-        random.shuffle(self.image_names) # 打乱
+        random.shuffle(self.image_names)  # 打乱
         # 例如image_name为./train/00001/2.png，提取00001就是其label
         self.labels = [int(file_name[len(data_dir):].split(os.sep)[0]) for file_name in self.image_names]
 
@@ -82,6 +85,7 @@ class DataIterator:
         if FLAGS.random_contrast:
             images = tf.image.random_contrast(images, 0.8, 1.2)
         return images
+
     # batch的生成
     def input_pipeline(self, batch_size, num_epochs=None, aug=False):
         # numpy array 转 tensor
@@ -104,14 +108,14 @@ class DataIterator:
 
 
 def build_graph(top_k):
-    keep_prob = tf.placeholder(dtype=tf.float32, shape=[], name='keep_prob') # dropout打开概率
+    keep_prob = tf.placeholder(dtype=tf.float32, shape=[], name='keep_prob')  # dropout打开概率
     images = tf.placeholder(dtype=tf.float32, shape=[None, 64, 64, 1], name='image_batch')
     labels = tf.placeholder(dtype=tf.int64, shape=[None], name='label_batch')
     is_training = tf.placeholder(dtype=tf.bool, shape=[], name='train_flag')
     with tf.device('/gpu:5'):
         # network: conv2d->max_pool2d->conv2d->max_pool2d->conv2d->max_pool2d->conv2d->conv2d->
         # max_pool2d->fully_connected->fully_connected
-        #给slim.conv2d和slim.fully_connected准备了默认参数：batch_norm
+        # 给slim.conv2d和slim.fully_connected准备了默认参数：batch_norm
         with slim.arg_scope([slim.conv2d, slim.fully_connected],
                             normalizer_fn=slim.batch_norm,
                             normalizer_params={'is_training': is_training}):
@@ -250,7 +254,7 @@ def validation():
     final_predict_index = []
     groundtruth = []
 
-    with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,allow_soft_placement=True)) as sess:
+    with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True)) as sess:
         test_images, test_labels = test_feeder.input_pipeline(batch_size=FLAGS.batch_size, num_epochs=1)
         graph = build_graph(top_k=5)
         saver = tf.train.Saver()
@@ -302,9 +306,10 @@ def validation():
         coord.join(threads)
     return {'prob': final_predict_val, 'indices': final_predict_index, 'groundtruth': groundtruth}
 
+
 # 获待预测图像文件夹内的图像名字
 def get_file_list(path):
-    list_name=[]
+    list_name = []
     files = os.listdir(path)
     files.sort()
     for file in files:
@@ -312,27 +317,31 @@ def get_file_list(path):
         list_name.append(file_path)
     return list_name
 
+
 # 图像二值化，需注意待预测的汉字是黑底白字还是白底黑字
 def binary_pic(name_list):
     for image in name_list:
         temp_image = cv2.imread(image)
-        #print image
-        GrayImage=cv2.cvtColor(temp_image,cv2.COLOR_BGR2GRAY) 
-        ret,thresh1=cv2.threshold(GrayImage,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        # print image
+        GrayImage = cv2.cvtColor(temp_image, cv2.COLOR_BGR2GRAY)
+        ret, thresh1 = cv2.threshold(GrayImage, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         single_name = image.split('t/')[1]
-        print single_name
-        cv2.imwrite('../data/tmp/'+single_name,thresh1)
+        print(single_name)
+        cv2.imwrite('../data/tmp/' + single_name, thresh1)
+
 
 # 获取汉字label映射表
 def get_label_dict():
-    f=open('./chinese_labels','r')
+    # f=open('./chinese_labels','rb')
+    f = open('./number_labels', 'rb')
     label_dict = pickle.load(f)
     f.close()
     return label_dict
 
+
 def inference(name_list):
     print('inference')
-    image_set=[]
+    image_set = []
     # 对每张图进行尺寸标准化和归一化
     for image in name_list:
         temp_image = Image.open(image).convert('L')
@@ -340,9 +349,9 @@ def inference(name_list):
         temp_image = np.asarray(temp_image) / 255.0
         temp_image = temp_image.reshape([-1, 64, 64, 1])
         image_set.append(temp_image)
-        
+
     # allow_soft_placement 如果你指定的设备不存在，允许TF自动分配设备
-    with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,allow_soft_placement=True)) as sess:
+    with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True)) as sess:
         logger.info('========start inference============')
         # images = tf.placeholder(dtype=tf.float32, shape=[None, 64, 64, 1])
         # Pass a shadow label 0. This label will not affect the computation graph.
@@ -350,21 +359,21 @@ def inference(name_list):
         saver = tf.train.Saver()
         # 自动获取最后一次保存的模型
         ckpt = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
-        if ckpt:       
+        if ckpt:
             saver.restore(sess, ckpt)
-        val_list=[]
-        idx_list=[]
+        val_list = []
+        idx_list = []
         # 预测每一张图
         for item in image_set:
             temp_image = item
             predict_val, predict_index = sess.run([graph['predicted_val_top_k'], graph['predicted_index_top_k']],
-                                              feed_dict={graph['images']: temp_image,
-                                                         graph['keep_prob']: 1.0,
-                                                         graph['is_training']: False})
+                                                  feed_dict={graph['images']: temp_image,
+                                                             graph['keep_prob']: 1.0,
+                                                             graph['is_training']: False})
             val_list.append(predict_val)
             idx_list.append(predict_index)
-    #return predict_val, predict_index
-    return val_list,idx_list
+    # return predict_val, predict_index
+    return val_list, idx_list
 
 
 def main(_):
@@ -381,23 +390,26 @@ def main(_):
     elif FLAGS.mode == 'inference':
         label_dict = get_label_dict()
         name_list = get_file_list('./tmp')
-        #binary_pic(name_list)
-        #tmp_name_list = get_file_list('../data/tmp')
+        # binary_pic(name_list)
+        # tmp_name_list = get_file_list('../data/tmp')
         # 将待预测的图片名字列表送入predict()进行预测，得到预测的结果及其index
         final_predict_val, final_predict_index = inference(name_list)
-        final_reco_text =[]  # 存储最后识别出来的文字串
+        final_reco_text = []  # 存储最后识别出来的文字串
         # 给出top 3预测，candidate1是概率最高的预测
         for i in range(len(final_predict_val)):
             candidate1 = final_predict_index[i][0][0]
             candidate2 = final_predict_index[i][0][1]
             candidate3 = final_predict_index[i][0][2]
             final_reco_text.append(label_dict[int(candidate1)])
-            logger.info('[the result info] image: {0} predict: {1} {2} {3}; predict index {4} predict_val {5}'.format(name_list[i], 
-                label_dict[int(candidate1)],label_dict[int(candidate2)],label_dict[int(candidate3)],final_predict_index[i],final_predict_val[i]))
-        print ('=====================OCR RESULT=======================\n')
+            logger.info('[the result info] image: {0} predict: {1} {2} {3}; predict index {4} predict_val {5}'.format(
+                name_list[i],
+                label_dict[int(candidate1)], label_dict[int(candidate2)], label_dict[int(candidate3)],
+                final_predict_index[i], final_predict_val[i]))
+        print('=====================OCR RESULT=======================\n')
         # 打印出所有识别出来的结果（取top 1）
         for i in range(len(final_reco_text)):
-           print final_reco_text[i], 
+            print(final_reco_text[i]),
+
 
 if __name__ == "__main__":
     tf.app.run()
