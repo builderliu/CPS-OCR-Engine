@@ -7,17 +7,24 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 import random
 import tensorflow.contrib.slim as slim
+# import tf_slim as slim
 import time
 import logging
 import numpy as np
 import tensorflow as tf
+# import tensorflow._api.v2.compat.v1 as tf
 import pickle
 from PIL import Image
 import cv2
 from tensorflow.python.ops import control_flow_ops
+# from tensorflow import keras
 import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
+# reload(sys)
+import imp
+imp.reload(sys)
+# sys.setdefaultencoding('utf-8')
+
+tf.disable_v2_behavior()
 
 logger = logging.getLogger('Training a chinese write char recognition')
 logger.setLevel(logging.INFO)
@@ -39,14 +46,14 @@ tf.app.flags.DEFINE_integer('eval_steps', 100, "the step num to eval")
 tf.app.flags.DEFINE_integer('save_steps', 500, "the steps to save")
 
 tf.app.flags.DEFINE_string('checkpoint_dir', './checkpoint/', 'the checkpoint dir')
-tf.app.flags.DEFINE_string('train_data_dir', './dataset/train/', 'the train dataset dir')
-tf.app.flags.DEFINE_string('test_data_dir', './dataset/test/', 'the test dataset dir')
+tf.app.flags.DEFINE_string('train_data_dir', 'D:dataset/ocr/train/', 'the train dataset dir')
+tf.app.flags.DEFINE_string('test_data_dir', 'D:/dataset/ocr/test/', 'the test dataset dir')
 tf.app.flags.DEFINE_string('log_dir', './log', 'the logging dir')
 
 tf.app.flags.DEFINE_boolean('restore', False, 'whether to restore from checkpoint')
 tf.app.flags.DEFINE_boolean('epoch', 1, 'Number of epoches')
 tf.app.flags.DEFINE_integer('batch_size', 128, 'Validation batch size')
-tf.app.flags.DEFINE_string('mode', 'validation', 'Running mode. One of {"train", "valid", "test"}')
+tf.app.flags.DEFINE_string('mode', 'validation', 'Running mode. One of {"train", "valid", "inference"}')
 
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
 FLAGS = tf.app.flags.FLAGS
@@ -171,8 +178,8 @@ def build_graph(top_k):
 def train():
     print('Begin training')
     # 填好数据读取的路径
-    train_feeder = DataIterator(data_dir='./dataset/train/')
-    test_feeder = DataIterator(data_dir='./dataset/test/')
+    train_feeder = DataIterator(data_dir='D:/dataset/ocr/train/')
+    test_feeder = DataIterator(data_dir='D:/dataset/ocr/test/')
     model_name = 'chinese-rec-model'
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True)) as sess:
         # batch data 获取
@@ -244,7 +251,7 @@ def train():
 
 def validation():
     print('Begin validation')
-    test_feeder = DataIterator(data_dir='./dataset/test/')
+    test_feeder = DataIterator(data_dir='D:/dataset/ocr/test/')
 
     final_predict_val = []
     final_predict_index = []
@@ -320,12 +327,12 @@ def binary_pic(name_list):
         GrayImage=cv2.cvtColor(temp_image,cv2.COLOR_BGR2GRAY) 
         ret,thresh1=cv2.threshold(GrayImage,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
         single_name = image.split('t/')[1]
-        print single_name
+        print(single_name)
         cv2.imwrite('../data/tmp/'+single_name,thresh1)
 
 # 获取汉字label映射表
 def get_label_dict():
-    f=open('./chinese_labels','r')
+    f=open('./chinese_labels','rb')
     label_dict = pickle.load(f)
     f.close()
     return label_dict
@@ -397,7 +404,7 @@ def main(_):
         print ('=====================OCR RESULT=======================\n')
         # 打印出所有识别出来的结果（取top 1）
         for i in range(len(final_reco_text)):
-           print final_reco_text[i], 
+           print(final_reco_text[i])
 
 if __name__ == "__main__":
     tf.app.run()

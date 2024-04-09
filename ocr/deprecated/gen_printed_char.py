@@ -13,9 +13,9 @@ import json
 import random
 import numpy as np
 import shutil
-from deep_ocr.lang_aux import LangCharsGenerate
-from deep_ocr.lang_aux import FontCheck
-from deep_ocr.lang_aux import Font2Image
+# from deep_ocr.lang_aux import LangCharsGenerate
+from ocr.gen_printed_char import FontCheck
+from ocr.gen_printed_char import Font2Image
 
 def get_label_dict():
     f=open('./chinese_labels','r')

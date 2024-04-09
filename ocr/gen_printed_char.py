@@ -158,8 +158,8 @@ class PreprocessResizeKeepRatioFillBG(object):
         if height_large < height_small:
             raise ValueError("height_large <= height_small")
 
-        start_width = (width_large - width_small) / 2
-        start_height = (height_large - height_small) / 2
+        start_width = (width_large - width_small) // 2
+        start_height = (height_large - height_small) // 2
 
         img_large[start_height:start_height + height_small,
                   start_width:start_width + width_small] = img_small
@@ -300,7 +300,7 @@ class Font2Image(object):
 
 # 注意，chinese_labels里面的映射关系是：（ID：汉字）
 def get_label_dict():
-    f=open('./chinese_labels','r')
+    f=open('./chinese_labels_bak','rb')
     label_dict = pickle.load(f)
     f.close()
     return label_dict
