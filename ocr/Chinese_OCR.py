@@ -6,7 +6,9 @@
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 import random
-import tensorflow.contrib.slim as slim
+# import tensorflow.contrib.slim as slim 修改为 
+from tensorflow import keras
+
 # import tf_slim as slim
 import time
 import logging
@@ -24,7 +26,6 @@ import imp
 imp.reload(sys)
 # sys.setdefaultencoding('utf-8')
 
-tf.disable_v2_behavior()
 
 logger = logging.getLogger('Training a chinese write char recognition')
 logger.setLevel(logging.INFO)
@@ -118,24 +119,22 @@ def build_graph(top_k):
     with tf.device('/gpu:5'):
         # network: conv2d->max_pool2d->conv2d->max_pool2d->conv2d->max_pool2d->conv2d->conv2d->
         # max_pool2d->fully_connected->fully_connected
-        #给slim.conv2d和slim.fully_connected准备了默认参数：batch_norm
-        with slim.arg_scope([slim.conv2d, slim.fully_connected],
-                            normalizer_fn=slim.batch_norm,
-                            normalizer_params={'is_training': is_training}):
-            conv3_1 = slim.conv2d(images, 64, [3, 3], 1, padding='SAME', scope='conv3_1')
-            max_pool_1 = slim.max_pool2d(conv3_1, [2, 2], [2, 2], padding='SAME', scope='pool1')
-            conv3_2 = slim.conv2d(max_pool_1, 128, [3, 3], padding='SAME', scope='conv3_2')
-            max_pool_2 = slim.max_pool2d(conv3_2, [2, 2], [2, 2], padding='SAME', scope='pool2')
-            conv3_3 = slim.conv2d(max_pool_2, 256, [3, 3], padding='SAME', scope='conv3_3')
-            max_pool_3 = slim.max_pool2d(conv3_3, [2, 2], [2, 2], padding='SAME', scope='pool3')
-            conv3_4 = slim.conv2d(max_pool_3, 512, [3, 3], padding='SAME', scope='conv3_4')
-            conv3_5 = slim.conv2d(conv3_4, 512, [3, 3], padding='SAME', scope='conv3_5')
-            max_pool_4 = slim.max_pool2d(conv3_5, [2, 2], [2, 2], padding='SAME', scope='pool4')
+        #给keras.layers.Conv2D和slim.fully_connected准备了默认参数：batch_norm
+        with keras.layers.Conv2D():
+            conv3_1 = keras.layers.Conv2D(images, 64, [3, 3], 1, padding='SAME', scope='conv3_1')
+            max_pool_1 = keras.layers.MaxPool2D(conv3_1, [2, 2], [2, 2], padding='SAME', scope='pool1')
+            conv3_2 = keras.layers.Conv2D(max_pool_1, 128, [3, 3], padding='SAME', scope='conv3_2')
+            max_pool_2 = keras.layers.MaxPool2D(conv3_2, [2, 2], [2, 2], padding='SAME', scope='pool2')
+            conv3_3 = keras.layers.Conv2D(max_pool_2, 256, [3, 3], padding='SAME', scope='conv3_3')
+            max_pool_3 = keras.layers.MaxPool2D(conv3_3, [2, 2], [2, 2], padding='SAME', scope='pool3')
+            conv3_4 = keras.layers.Conv2D(max_pool_3, 512, [3, 3], padding='SAME', scope='conv3_4')
+            conv3_5 = keras.layers.Conv2D(conv3_4, 512, [3, 3], padding='SAME', scope='conv3_5')
+            max_pool_4 = keras.layers.MaxPool2D(conv3_5, [2, 2], [2, 2], padding='SAME', scope='pool4')
 
-            flatten = slim.flatten(max_pool_4)
-            fc1 = slim.fully_connected(slim.dropout(flatten, keep_prob), 1024,
+            flatten = keras.layers.Flatten(max_pool_4)
+            fc1 = keras.layers.Dense(keras.layers.Dropout(flatten, keep_prob), 1024,
                                        activation_fn=tf.nn.relu, scope='fc1')
-            logits = slim.fully_connected(slim.dropout(fc1, keep_prob), FLAGS.charset_size, activation_fn=None,
+            logits = keras.layers.Dense(keras.layers.Dropout(fc1, keep_prob), FLAGS.charset_size, activation_fn=None,
                                           scope='fc2')
         # 因为我们没有做热编码，所以使用sparse_softmax_cross_entropy_with_logits
         loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels))
@@ -148,7 +147,7 @@ def build_graph(top_k):
 
         global_step = tf.get_variable("step", [], initializer=tf.constant_initializer(0.0), trainable=False)
         optimizer = tf.train.AdamOptimizer(learning_rate=0.1)
-        train_op = slim.learning.create_train_op(loss, optimizer, global_step=global_step)
+        train_op = keras.layers. learning.create_train_op(loss, optimizer, global_step=global_step)
         probabilities = tf.nn.softmax(logits)
 
         # 绘制loss accuracy曲线
